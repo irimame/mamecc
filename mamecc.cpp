@@ -1,5 +1,7 @@
 #include <iostream>
 #include <cstdlib>
+#include "tokenizer.h"
+#include "compilation_engine.h"
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -8,30 +10,8 @@ int main(int argc, char **argv) {
   }
 
   char *p = argv[1];
-
-  std::cout << ".intel_syntax noprefix" << std::endl;
-  std::cout << ".globl main" << std::endl;
-  std::cout << "main: " << std::endl;
-  std::cout << "  mov rax, " << std::strtol(p, &p, 10) << std::endl;
-
-  while (*p) {
-
-    if (*p == '+') {
-      ++p;
-      std::cout << "  add rax, " << std::strtol(p, &p, 10) << std::endl;
-      continue;
-    }
-
-    if (*p == '-') {
-      ++p;
-      std::cout << "  sub rax, " << std::strtol(p, &p, 10) << std::endl;
-      continue;
-    }
-
-    std::cerr << "Error: Unexpected character: '" << *p << "'" << std::endl;
-    return 1;
-  }
-
-  std::cout << "  ret" << std::endl;
+  tokenizer tknizer(p);
+  compilation_engine compile_engine(tknizer);
+  compile_engine.compile();
   return 0;
 }
