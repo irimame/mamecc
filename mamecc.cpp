@@ -1,6 +1,7 @@
 #include <iostream>
 #include <cstdlib>
 #include "tokenizer.h"
+#include "syntax_tree.h"
 #include "compilation_engine.h"
 
 int main(int argc, char **argv) {
@@ -11,7 +12,15 @@ int main(int argc, char **argv) {
 
   char *p = argv[1];
   tokenizer tknizer(p);
-  compilation_engine compile_engine(tknizer);
-  compile_engine.compile();
+  syntax_tree stree(tknizer);
+
+  std::cout << ".intel_syntax noprefix" << std::endl;
+  std::cout << ".globl main" << std::endl;
+  std::cout << "main: " << std::endl;
+
+  stree.execute();
+
+  std::cout << "  pop rax" << std::endl;
+  std::cout << "  ret" << std::endl;
   return 0;
 }

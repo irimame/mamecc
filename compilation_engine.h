@@ -9,10 +9,6 @@ public:
   void compile();
 
 private:
-  bool peek(char op);
-  void advance();
-  void expect(char op);
-  int expect_number();
   bool at_eof() const;
   tokenizer _tknizer;
 };

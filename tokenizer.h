@@ -26,6 +26,8 @@ public:
   tokenizer(char *input_string);
   const token& consume_token();
   const token& peek_token() const;
+  void expect(const std::string& symbol);
+  int expect_number();
   void advance();
 
 private:

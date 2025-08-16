@@ -25,7 +25,7 @@ void tokenizer::tokenize(char *p) {
       continue;
     }
 
-    if (*p == '+' || *p == '-') {
+    if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')') {
       token_list.push_back(token(token_kind::TK_SYMBOL, std::string(1, *p++)));
       continue;
     }
@@ -48,6 +48,24 @@ const token& tokenizer::consume_token() {
 
 const token& tokenizer::peek_token() const {
   return this->token_list.at(this->token_index);
+}
+
+void tokenizer::expect(const std::string& symbol) {
+  token tk = consume_token();
+  if (tk.val() != symbol) {
+    std::cerr << "Error: Expected '" << symbol << "', but got " << tk.val() << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+}
+
+int tokenizer::expect_number() {
+  token tk = consume_token();
+  if (tk.kind() != token_kind::TK_NUM) {
+    std::cerr << "Error: Not a number" << tk.val() << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+
+  return std::stoi(tk.val());
 }
 
 void tokenizer::advance() {
