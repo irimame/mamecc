@@ -41,6 +41,7 @@ public:
   std::shared_ptr<node> new_node_num(int val);
   std::shared_ptr<node> expr();
   std::shared_ptr<node> mul();
+  std::shared_ptr<node> unary();
   std::shared_ptr<node> primary();
   void gen(std::shared_ptr<node> nodeptr);
 

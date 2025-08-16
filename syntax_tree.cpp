@@ -65,23 +65,37 @@ std::shared_ptr<node> syntax_tree::expr() {
   }
 }
 
-// mul = primary ('*' primary | '/' primary)*
+// mul = unary ('*' unary | '/' unary)*
 std::shared_ptr<node> syntax_tree::mul() {
-  std::shared_ptr<node> nd = primary();
+  std::shared_ptr<node> nd = unary();
 
   for (;;) {
     token tk = _tknizer.peek_token();
     if (tk.kind() == token_kind::TK_SYMBOL && tk.val() == "*") {
       _tknizer.advance();
-      nd = new_node(node_kind::ND_MUL, nd, primary());
+      nd = new_node(node_kind::ND_MUL, nd, unary());
     }
     else if (tk.kind() == token_kind::TK_SYMBOL && tk.val() == "/") {
       _tknizer.advance();
-      nd = new_node(node_kind::ND_DIV, nd, primary());
+      nd = new_node(node_kind::ND_DIV, nd, unary());
     }
     else 
       return nd;
   }
+}
+
+// unary = ('+' | '-')? primary
+std::shared_ptr<node> syntax_tree::unary() {
+  token tk = _tknizer.peek_token();
+  if (tk.kind() == token_kind::TK_SYMBOL && tk.val() == "+") {
+    _tknizer.advance();
+    return primary();
+  }
+  if (tk.kind() == token_kind::TK_SYMBOL && tk.val() == "-") {
+    _tknizer.advance();
+    return new_node(node_kind::ND_SUB, new_node_num(0), primary());
+  }
+  return primary();
 }
 
 // primary = num | '(' expr ')'
