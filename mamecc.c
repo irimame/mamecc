@@ -3,14 +3,31 @@
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
-    printf("Error: The number of arguments is incorrect.\n");
+    fprintf(stderr, "Error: The number of arguments is incorrect\n");
     return 1;
   }
 
   printf(".intel_syntax noprefix\n");
   printf(".globl main\n");
   printf("main:\n");
-  printf("  mov rax, %d\n", atoi(argv[1]));
+
+  char *p = argv[1];
+  printf("  mov rax, %ld\n", strtol(p, &p, 10));
+
+  while (*p) {
+    if (*p == '+') {
+      ++p;
+      printf("  add rax, %ld\n", strtol(p, &p, 10));
+    }
+    else if (*p == '-') {
+      ++p;
+      printf("  sub rax, %ld\n", strtol(p, &p, 10));
+    }
+    else {
+      fprintf(stderr, "Error: Unexpected char '%c'\n", *p);
+    }
+  }
+
   printf("  ret\n");
   return 0;
 }
