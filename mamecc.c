@@ -18,6 +18,7 @@ struct Token {
   Token *next;
 };
 
+Token *tokenize(char *p);
 Token *new_token(Token *cur, TokenKind kind, char *val);
 bool at_eof(Token *tk);
 bool peek(Token *tk, char *expect);
@@ -63,14 +64,29 @@ int main(int argc, char *argv[]) {
   printf(".globl main\n");
   printf("main:\n");
 
+  /* tokenize */
+  Token *token = tokenize(argv[1]);
+
+  /* parse */
+  // move to the next of head
+  advance(&token);
+  Node *node = expr(&token);
+
+
+  /* codegen */
+  node_to_code(node);
+  printf("  pop rax\n");
+  printf("  ret\n");
+  return 0;
+}
+
+Token *tokenize(char *p) {
   Token *token;
   Token head;
   head.next = NULL;
   token = &head;
   Token *cur = token;
 
-  /* tokenize */
-  char *p = argv[1];
   while (*p) {
     if (isspace(*p)) {
       ++p;
@@ -113,20 +129,8 @@ int main(int argc, char *argv[]) {
   }
   cur = new_token(cur, TK_EOF, "");
 
-
-  /* parse */
-  // move to the next of head
-  advance(&token);
-  Node *node = expr(&token);
-
-
-  /* codegen */
-  node_to_code(node);
-  printf("  pop rax\n");
-  printf("  ret\n");
-  return 0;
+  return token;
 }
-
 
 Token *new_token(Token *cur, TokenKind kind, char *val) {
   Token *tk = malloc(sizeof(Token));
