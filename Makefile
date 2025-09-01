@@ -1,6 +1,11 @@
 CFLAGS=-std=c11 -g -static
+SRCS=$(wildcard *.c)
+OBJS=$(SRCS:.c=.o)
 
-mamecc: mamecc.c
+mamecc: $(OBJS)
+				$(CC) -o mamecc $(OBJS) $(LDFRAGS)
+
+$(OBJS): mamecc.h
 
 test: mamecc
 				./test.sh
