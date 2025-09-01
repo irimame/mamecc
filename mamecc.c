@@ -35,7 +35,11 @@ typedef enum {
   ND_ADD,
   ND_SUB,
   ND_MUL,
-  ND_DIV
+  ND_DIV,
+  ND_EQ,
+  ND_NEQ,
+  ND_LT,
+  ND_LE
 } NodeKind;
 
 typedef struct Node Node;
@@ -50,6 +54,9 @@ struct Node {
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int num);
 Node *expr(Token **tk);
+Node *equality(Token **tk);
+Node *relational(Token **tk);
+Node *add(Token **tk);
 Node *mul(Token **tk);
 Node *unary(Token **tk);
 Node *primary(Token **tk);
@@ -95,7 +102,31 @@ Token *tokenize(char *p) {
       continue;
     }
 
-    if (*p == '+') {
+    if (strncmp(p, "==", 2) == 0) {
+      cur = new_token(cur, TK_SYMBOL, "==");
+      p += 2;
+    }
+    else if (strncmp(p, "!=", 2) == 0) {
+      cur = new_token(cur, TK_SYMBOL, "!=");
+      p += 2;
+    }
+    else if (strncmp(p, "<=", 2) == 0) {
+      cur = new_token(cur, TK_SYMBOL, "<=");
+      p += 2;
+    }
+    else if (strncmp(p, ">=", 2) == 0) {
+      cur = new_token(cur, TK_SYMBOL, ">=");
+      p += 2;
+    }
+    else if (*p == '<') {
+      cur = new_token(cur, TK_SYMBOL, "<");
+      ++p;
+    }
+    else if (*p == '>') {
+      cur = new_token(cur, TK_SYMBOL, ">");
+      ++p;
+    }
+    else if (*p == '+') {
       cur = new_token(cur, TK_SYMBOL, "+");
       ++p;
     }
@@ -203,8 +234,56 @@ Node *new_node_num(int num) {
   return nd;
 }
 
-// expr = mul ("+" mul | "-" mul)*
+// expr = equality
 Node *expr(Token **tk) {
+  return equality(tk);
+}
+
+// equality = relational ("==" relational | "!=" relational)*
+Node *equality(Token **tk) {
+  Node *nd = relational(tk);
+
+  while (!at_eof(*tk) && (peek(*tk, "==") || peek(*tk, "!="))) {
+    char *op = consume(tk);
+    if (strncmp(op, "==", 2) == 0) {
+      nd = new_node(ND_EQ, nd, relational(tk));
+    }
+    else {
+      nd = new_node(ND_NEQ, nd, relational(tk));
+    }
+  }
+
+  return nd;
+}
+
+// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+Node *relational(Token **tk) {
+  Node *nd = add(tk);
+
+  while (
+    !at_eof(*tk) && 
+    (peek(*tk, "<") || peek(*tk, "<=") || peek(*tk, ">") || peek(*tk, ">="))
+  ) {
+    char *op = consume(tk);
+    if (strncmp(op, "<=", 2) == 0) {
+      nd = new_node(ND_LE, nd, relational(tk));
+    }
+    else if (strncmp(op, ">=", 2) == 0) {
+      nd = new_node(ND_LE, relational(tk), nd);
+    }
+    else if (strncmp(op, "<", 1) == 0) {
+      nd = new_node(ND_LT, nd, relational(tk));
+    }
+    else {
+      nd = new_node(ND_LT, relational(tk), nd);
+    }
+  }
+
+  return nd;
+}
+
+// add = mul ("+" mul | "-" mul)
+Node *add(Token **tk) {
   Node *nd = mul(tk);
 
   while (!at_eof(*tk) && (peek(*tk, "+") || peek(*tk, "-"))) {
@@ -294,5 +373,26 @@ void node_to_code(Node *nd) {
     printf("  cqo\n");
     printf("  idiv rdi\n");
   }
+  else if (nd->kind == ND_EQ) {
+    printf("  cmp rax, rdi\n");
+    printf("  sete al\n");
+    printf("  movzb rax, al\n");
+  }
+  else if (nd->kind == ND_NEQ) {
+    printf("  cmp rax, rdi\n");
+    printf("  setne al\n");
+    printf("  movzb rax, al\n");
+  }
+  else if (nd->kind == ND_LT) {
+    printf("  cmp rax, rdi\n");
+    printf("  setl al\n");
+    printf("  movzb rax, al\n");
+  }
+  else if (nd->kind == ND_LE) {
+    printf("  cmp rax, rdi\n");
+    printf("  setle al\n");
+    printf("  movzb rax, al\n");
+  }
+
   printf("  push rax\n");
 }

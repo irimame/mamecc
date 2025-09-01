@@ -26,5 +26,11 @@ assert 4 '( 3 + 5 )/ 2'
 assert 2 ' - 3 + 5'
 assert 15 '-3*-5'
 assert 9 '+3 * ( + 6  /2)'
+assert 1 '+3 * ( + 6  /2) < 10'
+assert 0 '48 <= 5 ++6* 7'
+assert 0 '-3*-5 > 15'
+assert 1 '-3*-5 >= 15'
+assert 1 '2--6 == 50 +-6* 7'
+assert 0 ' 9 !=  +3 * ( + 6  /2) '
 
 echo OK
