@@ -76,10 +76,15 @@ Token *tokenize(char *p) {
     }
     else if (isalpha(*p)) {
       char *q = p;
-      while (isalnum(*q)) ++q;
-      char *ident = malloc(sizeof(char) * (q - p + 1));
-      strncpy(ident, p, q - p);
-      cur = new_token(cur, TK_IDENT, ident);
+      while (isalnum(*q) || *q == '_') ++q;
+      char *alnumstr = malloc(sizeof(char) * (q - p + 1));
+      strncpy(alnumstr, p, q - p);
+      if (strncmp(alnumstr, "return", 6) == 0) {
+        cur = new_token(cur, TK_RETURN, "return");
+      }
+      else {
+        cur = new_token(cur, TK_IDENT, alnumstr);
+      }
       p = q;
     }
     else if (isdigit(*p)) {

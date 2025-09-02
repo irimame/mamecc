@@ -42,11 +42,19 @@ void program(Node **ndlist, Token **tk, Varlist *vl) {
   ndlist[i] = NULL;
 }
 
-// stmt = expr ";"
+// stmt = expr ";" || "return" expr ";"
 Node *stmt(Token **tk, Varlist *vl) {
-  Node *nd = expr(tk, vl);
-  expect_consume(tk, ";");
-  return nd;
+  if (!at_eof(*tk) && peek(*tk, "return")) {
+    advance(tk);
+    Node *nd = new_node(ND_RETURN, expr(tk, vl), NULL);
+    expect_consume(tk, ";");
+    return nd;
+  }
+  else {
+    Node *nd = expr(tk, vl);
+    expect_consume(tk, ";");
+    return nd;
+  }
 }
 
 // expr = assign

@@ -30,6 +30,16 @@ void node_to_code(Node *nd) {
     return;
   }
 
+  if (nd->kind == ND_RETURN) {
+    node_to_code(nd->lhs);
+
+    printf("  pop rax\n");
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
+    return;
+  }
+
   node_to_code(nd->lhs);
   node_to_code(nd->rhs);
 
