@@ -66,6 +66,22 @@ Token *tokenize(char *p) {
       cur = new_token(cur, TK_SYMBOL, ")");
       ++p;
     }
+    else if (*p == ';') {
+      cur = new_token(cur, TK_SYMBOL, ";");
+      ++p;
+    }
+    else if (*p == '=') {
+      cur = new_token(cur, TK_SYMBOL, "=");
+      ++p;
+    }
+    else if (isalpha(*p)) {
+      char *q = p;
+      while (isalnum(*q)) ++q;
+      char *ident = malloc(sizeof(char) * (q - p + 1));
+      strncpy(ident, p, q - p);
+      cur = new_token(cur, TK_IDENT, ident);
+      p = q;
+    }
     else if (isdigit(*p)) {
       long num = strtol(p, &p, 10);
       char *numstr = malloc(sizeof(char) * 128);
@@ -98,7 +114,7 @@ bool at_eof(Token *tk) {
 }
 
 bool peek(Token *tk, char *expect) {
-  return (strncmp(tk->val, expect, tk->len) == 0);
+  return (strncmp(tk->val, expect, strlen(expect)) == 0);
 }
 
 bool peek_kind(Token *tk, TokenKind kind) {
@@ -125,6 +141,16 @@ int consume_num(Token **tk) {
   exit(1);
 }
 
+char *consume_ident(Token **tk) {
+  if ((*tk)->kind == TK_IDENT) {
+    char *ident = (*tk)->val;
+    advance(tk);
+    return ident;
+  } 
+  fprintf(stderr, "Error: Expected an identifier, but not an identifier\n");
+  exit(1);
+}
+
 void expect_consume(Token **tk, char *expect) {
   if(strncmp((*tk)->val, expect, strlen(expect)) == 0) {
     advance(tk);
@@ -132,4 +158,11 @@ void expect_consume(Token **tk, char *expect) {
   } 
   fprintf(stderr, "Error: Unexpected token '%s'\n", (*tk)->val);
   exit(1);
+}
+
+void print_tokens(Token *tk) {
+  while (!at_eof(tk)) {
+    printf("token: %s, len: %ld, type: %d\n", tk->val, tk->len, tk->kind);
+    tk = tk -> next;
+  }
 }

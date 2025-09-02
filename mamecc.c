@@ -15,10 +15,16 @@ int main(int argc, char *argv[]) {
   Token *token = tokenize(argv[1]);
 
   /* parse */
-  Node *node = expr(&token);
+  Varlist *varlist = init_varlist();
+  Node *nodelist[100];
+  program(nodelist, &token, varlist);
 
   /* codegen */
-  node_to_code(node);
+  int i = 0;
+  while (nodelist[i]) {
+    node_to_code(nodelist[i]);
+    ++i;
+  }
   printf("  pop rax\n");
   printf("  ret\n");
 

@@ -1,5 +1,8 @@
 #include "mamecc.h"
 #include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs) {
   Node *nd = malloc(sizeof(Node));
@@ -18,22 +21,62 @@ Node *new_node_num(int num) {
   return nd;
 }
 
-// expr = equality
-Node *expr(Token **tk) {
-  return equality(tk);
+Node *new_node_ident(Varlist *vl, char *ident) {
+  Node *nd = malloc(sizeof(Node));
+  nd->kind = ND_IDENT;
+  nd->lhs = NULL;
+  nd->rhs = NULL;
+  Varlist *v = is_registered(vl, ident);
+  if (!v) v = new_var_ident(vl, ident);
+  nd->offset = v->offset;
+  return nd;
+}
+
+// program = stmt*
+void program(Node **ndlist, Token **tk, Varlist *vl) {
+  int i = 0;
+  while (!at_eof(*tk)) {
+    ndlist[i] = stmt(tk, vl);
+    ++i;
+  }
+  ndlist[i] = NULL;
+}
+
+// stmt = expr ";"
+Node *stmt(Token **tk, Varlist *vl) {
+  Node *nd = expr(tk, vl);
+  expect_consume(tk, ";");
+  return nd;
+}
+
+// expr = assign
+Node *expr(Token **tk, Varlist *vl) {
+  return assign(tk, vl);
+}
+
+// assign = equality ("=" assign)?
+Node *assign(Token **tk, Varlist *vl) {
+  Node *nd = equality(tk, vl);
+
+  if (!at_eof(*tk) && peek(*tk, "=")) {
+    advance(tk);
+    nd = new_node(ND_ASSIGN, nd, assign(tk, vl));
+  }
+
+  return nd;
 }
 
 // equality = relational ("==" relational | "!=" relational)*
-Node *equality(Token **tk) {
-  Node *nd = relational(tk);
+Node *equality(Token **tk, Varlist *vl) {
+  Node *nd = relational(tk, vl);
 
   while (!at_eof(*tk) && (peek(*tk, "==") || peek(*tk, "!="))) {
     char *op = consume(tk);
     if (strncmp(op, "==", 2) == 0) {
-      nd = new_node(ND_EQ, nd, relational(tk));
+      nd = new_node(ND_EQ, nd, relational(tk, vl));
     }
     else {
-      nd = new_node(ND_NEQ, nd, relational(tk));
+      nd = new_node(ND_NEQ, nd, relational(tk, vl));
     }
   }
 
@@ -41,8 +84,8 @@ Node *equality(Token **tk) {
 }
 
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-Node *relational(Token **tk) {
-  Node *nd = add(tk);
+Node *relational(Token **tk, Varlist *vl) {
+  Node *nd = add(tk, vl);
 
   while (
     !at_eof(*tk) && 
@@ -50,16 +93,16 @@ Node *relational(Token **tk) {
   ) {
     char *op = consume(tk);
     if (strncmp(op, "<=", 2) == 0) {
-      nd = new_node(ND_LE, nd, relational(tk));
+      nd = new_node(ND_LE, nd, relational(tk, vl));
     }
     else if (strncmp(op, ">=", 2) == 0) {
-      nd = new_node(ND_LE, relational(tk), nd);
+      nd = new_node(ND_LE, relational(tk, vl), nd);
     }
     else if (strncmp(op, "<", 1) == 0) {
-      nd = new_node(ND_LT, nd, relational(tk));
+      nd = new_node(ND_LT, nd, relational(tk, vl));
     }
     else {
-      nd = new_node(ND_LT, relational(tk), nd);
+      nd = new_node(ND_LT, relational(tk, vl), nd);
     }
   }
 
@@ -67,16 +110,16 @@ Node *relational(Token **tk) {
 }
 
 // add = mul ("+" mul | "-" mul)
-Node *add(Token **tk) {
-  Node *nd = mul(tk);
+Node *add(Token **tk, Varlist *vl) {
+  Node *nd = mul(tk, vl);
 
   while (!at_eof(*tk) && (peek(*tk, "+") || peek(*tk, "-"))) {
     char *op = consume(tk);
     if (strncmp(op, "+", 1) == 0) {
-      nd = new_node(ND_ADD, nd, mul(tk));
+      nd = new_node(ND_ADD, nd, mul(tk, vl));
     }
     else {
-      nd = new_node(ND_SUB, nd, mul(tk));
+      nd = new_node(ND_SUB, nd, mul(tk, vl));
     }
   }
 
@@ -84,18 +127,18 @@ Node *add(Token **tk) {
 }
 
 // mul = unary ("*" unary | "/" unary)*
-Node *mul(Token **tk) {
+Node *mul(Token **tk, Varlist *vl) {
 
-  Node *nd = unary(tk);
+  Node *nd = unary(tk, vl);
 
   while (!at_eof(*tk) && (peek(*tk, "*") || peek(*tk, "/"))) {
     char *op = consume(tk);
 
     if (strncmp(op, "*", 1) == 0) {
-      nd = new_node(ND_MUL, nd, unary(tk));
+      nd = new_node(ND_MUL, nd, unary(tk, vl));
     }
     else {
-      nd = new_node(ND_DIV, nd, unary(tk));
+      nd = new_node(ND_DIV, nd, unary(tk, vl));
     }
   }
 
@@ -103,29 +146,33 @@ Node *mul(Token **tk) {
 }
 
 // unary = ("+" | "-")? primary
-Node *unary(Token **tk) {
+Node *unary(Token **tk, Varlist *vl) {
   if (!at_eof(*tk) && (peek(*tk, "+") || peek(*tk, "-"))) {
     char *op = consume(tk);
     if (strncmp(op, "+", 1) == 0) {
-      return new_node(ND_ADD, new_node_num(0), primary(tk));
+      return new_node(ND_ADD, new_node_num(0), primary(tk, vl));
     }
     else {
-      return new_node(ND_SUB, new_node_num(0), primary(tk));
+      return new_node(ND_SUB, new_node_num(0), primary(tk, vl));
     }
   }
 
-  return primary(tk);
+  return primary(tk, vl);
 }
 
-// primary = num | "(" expr ")"
-Node *primary(Token **tk) {
+// primary = num | ident | "(" expr ")"
+Node *primary(Token **tk, Varlist *vl) {
   if (peek_kind(*tk, TK_NUM)) {
     int num = consume_num(tk);
     return new_node_num(num);
   }
+  else if (peek_kind(*tk, TK_IDENT)) {
+    char *ident = consume_ident(tk);
+    return new_node_ident(vl, ident);
+  }
 
   expect_consume(tk, "(");
-  Node *nd = expr(tk);
+  Node *nd = expr(tk, vl);
   expect_consume(tk, ")");
 
   return nd;

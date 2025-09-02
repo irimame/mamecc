@@ -1,11 +1,32 @@
 #include "mamecc.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 void node_to_code(Node *nd) {
   if (nd == NULL) return;
 
   if (nd->kind == ND_NUM) {
     printf("  push %d\n", nd->num);
+    return;
+  }
+
+  // a variable in RHS: push the value of the variable
+  if (nd->kind == ND_IDENT) {
+    printf("  mov rdi, rbp\n");
+    printf("  add rdi, %d\n", nd->offset);
+    printf("  mov rax, [rdi]\n"); 
+    printf("  push rax\n");
+    return;
+  }
+
+  if (nd->kind == ND_ASSIGN) {
+    // a variable in LHS: push the address of the variable
+    node_to_code_lhs(nd->lhs);
+    node_to_code(nd->rhs);
+
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+    printf("  mov [rax], rdi\n"); 
     return;
   }
 
@@ -49,4 +70,14 @@ void node_to_code(Node *nd) {
   }
 
   printf("  push rax\n");
+}
+
+void node_to_code_lhs(Node *nd) {
+  if (nd->kind != ND_IDENT) {
+    fprintf(stderr, "Error: LHS of assign expr. must contain only variable\n");
+    exit(1);
+  }
+  printf("  mov rax, rbp\n");
+  printf("  add rax, %d\n", nd->offset);
+  printf("  push rax\n"); 
 }
