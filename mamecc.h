@@ -105,7 +105,7 @@ void node_to_code_lhs(Node *nd);
 
 
 /* LocalVarList */
-LocalVarList *init_varlist();
+LocalVarList *init_varlist(void);
 LocalVarList *new_var_ident(LocalVarList *vl, char *ident);
 LocalVarList *is_registered(LocalVarList *vl, char *ident);
 size_t get_offset(LocalVarList *vl, char *ident);

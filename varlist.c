@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdio.h>
 
-LocalVarList *init_varlist() {
+LocalVarList *init_varlist(void) {
   LocalVarList *varlist = malloc(sizeof(LocalVarList));
   varlist->ident = "";
   varlist->offset = 0;
