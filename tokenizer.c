@@ -82,6 +82,18 @@ Token *tokenize(char *p) {
       if (strncmp(alnumstr, "return", 6) == 0) {
         cur = new_token(cur, TK_RETURN, "return");
       }
+      else if (strncmp(alnumstr, "if", 2) == 0) {
+        cur = new_token(cur, TK_IF, "if");
+      }
+      else if (strncmp(alnumstr, "else", 4) == 0) {
+        cur = new_token(cur, TK_ELSE, "else");
+      }
+      else if (strncmp(alnumstr, "while", 5) == 0) {
+        cur = new_token(cur, TK_WHILE, "while");
+      }
+      else if (strncmp(alnumstr, "for", 3) == 0) {
+        cur = new_token(cur, TK_FOR, "for");
+      }
       else {
         cur = new_token(cur, TK_IDENT, alnumstr);
       }
@@ -99,7 +111,7 @@ Token *tokenize(char *p) {
   }
   cur = new_token(cur, TK_EOF, "");
 
-  // move to the next of head
+  // move to the first token
   advance(&token);
   return token;
 }

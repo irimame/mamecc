@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static size_t label_num = 0;
+
 void node_to_code(Node *nd) {
   if (nd == NULL) return;
 
@@ -37,6 +39,59 @@ void node_to_code(Node *nd) {
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");
     printf("  ret\n");
+    return;
+  }
+
+  if (nd->kind == ND_IF) {
+    node_to_code(nd->lhs);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  je  .Lend%ld\n", label_num);
+    node_to_code(nd->rhs);
+    printf(".Lend%ld:\n", label_num);
+    ++label_num;
+    return;
+  }
+
+  if (nd->kind == ND_IF_ELSE) {
+    node_to_code(nd->lhs->lhs);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  je  .Lelse%ld\n", label_num);
+    node_to_code(nd->lhs->rhs);
+    printf("  jmp .Lend%ld\n", label_num);
+    printf(".Lelse%ld:\n", label_num);
+    node_to_code(nd->rhs);
+    printf(".Lend%ld:\n", label_num);
+    ++label_num;
+    return;
+  }
+
+  if (nd->kind == ND_WHILE) {
+    printf(".Lbegin%ld:\n", label_num);
+    node_to_code(nd->lhs);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  je  .Lend%ld\n", label_num);
+    node_to_code(nd->rhs);
+    printf("  jmp .Lbegin%ld\n", label_num);
+    printf(".Lend%ld:\n", label_num);
+    ++label_num;
+    return;
+  }
+
+  if (nd->kind == ND_FOR) {
+    node_to_code(nd->lhs->lhs);
+    printf(".Lbegin%ld:\n", label_num);
+    node_to_code(nd->lhs->rhs);
+    printf("  pop rax\n");
+    printf("  cmp rax, 0\n");
+    printf("  je  .Lend%ld\n", label_num);
+    node_to_code(nd->rhs->lhs);
+    node_to_code(nd->rhs->rhs);
+    printf("  jmp .Lbegin%ld\n", label_num);
+    printf(".Lend%ld:\n", label_num);
+    ++label_num;
     return;
   }
 

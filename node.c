@@ -42,9 +42,67 @@ void program(Node **ndlist, Token **tk, Varlist *vl) {
   ndlist[i] = NULL;
 }
 
-// stmt = expr ";" || "return" expr ";"
+/* 
+  stmt  = expr ";" 
+          | "if" "(" expr ")" stmt ("else" stmt)?
+          | "while" "(" expr ")" stmt
+          | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+          | "return" expr ";"
+*/
 Node *stmt(Token **tk, Varlist *vl) {
-  if (!at_eof(*tk) && peek(*tk, "return")) {
+  if (!at_eof(*tk) && peek(*tk, "if")) {
+    advance(tk);
+    expect_consume(tk, "(");
+    Node *nd_if_expr = expr(tk, vl);
+    expect_consume(tk, ")");
+    Node *nd_if_stmt = stmt(tk, vl);
+
+    if (!at_eof(*tk) && peek(*tk, "else")) {
+      advance(tk);
+      Node *nd_else_stmt = stmt(tk, vl);
+      return new_node(ND_IF_ELSE, new_node(ND_PHONY, nd_if_expr, nd_if_stmt), nd_else_stmt);
+    }
+
+    return new_node(ND_IF, nd_if_expr, nd_if_stmt);
+  }
+  else if (!at_eof(*tk) && peek(*tk, "while")) {
+    advance(tk);
+    expect_consume(tk, "(");
+    Node *nd_while_expr = expr(tk, vl);
+    expect_consume(tk, ")");
+    Node *nd_while_stmt = stmt(tk, vl);
+    return new_node(ND_WHILE, nd_while_expr, nd_while_stmt);
+  }
+  else if (!at_eof(*tk) && peek(*tk, "for")) {
+    advance(tk);
+    expect_consume(tk, "(");
+
+    Node *nd_for_begin = NULL;
+    if (!at_eof(*tk) && !peek(*tk, ";")) {
+      nd_for_begin = expr(tk, vl);
+    }
+    expect_consume(tk, ";");
+
+    Node *nd_for_end = NULL;
+    if (!at_eof(*tk) && !peek(*tk, ";")) {
+      nd_for_end = expr(tk, vl);
+    }
+    expect_consume(tk, ";");
+
+    Node *nd_for_upd = NULL;
+    if (!at_eof(*tk) && !peek(*tk, ")")) {
+      nd_for_upd = expr(tk, vl);
+    }
+    expect_consume(tk, ")");
+
+    Node *nd_for_code = stmt(tk, vl);
+
+    Node *nd_for_cond = new_node(ND_PHONY, nd_for_begin, nd_for_end);
+    Node *nd_for_code_upd = new_node(ND_PHONY, nd_for_code, nd_for_upd);
+
+    return new_node(ND_FOR, nd_for_cond, nd_for_code_upd);
+  }
+  else if (!at_eof(*tk) && peek(*tk, "return")) {
     advance(tk);
     Node *nd = new_node(ND_RETURN, expr(tk, vl), NULL);
     expect_consume(tk, ";");
