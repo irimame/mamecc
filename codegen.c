@@ -15,7 +15,7 @@ void node_to_code(Node *nd) {
   // a variable in RHS: push the value of the variable
   if (nd->kind == ND_IDENT) {
     printf("  mov rdi, rbp\n");
-    printf("  add rdi, %d\n", nd->offset);
+    printf("  sub rdi, %ld\n", nd->offset);
     printf("  mov rax, [rdi]\n"); 
     printf("  push rax\n");
     return;
@@ -29,12 +29,14 @@ void node_to_code(Node *nd) {
     printf("  pop rdi\n");
     printf("  pop rax\n");
     printf("  mov [rax], rdi\n"); 
+    printf("  push rdi\n");
     return;
   }
 
   if (nd->kind == ND_RETURN) {
     node_to_code(nd->lhs);
 
+    // pop & epilogue
     printf("  pop rax\n");
     printf("  mov rsp, rbp\n");
     printf("  pop rbp\n");
@@ -143,6 +145,6 @@ void node_to_code_lhs(Node *nd) {
     exit(1);
   }
   printf("  mov rax, rbp\n");
-  printf("  add rax, %d\n", nd->offset);
+  printf("  sub rax, %ld\n", nd->offset);
   printf("  push rax\n"); 
 }

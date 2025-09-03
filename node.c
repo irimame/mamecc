@@ -21,19 +21,19 @@ Node *new_node_num(int num) {
   return nd;
 }
 
-Node *new_node_ident(Varlist *vl, char *ident) {
+Node *new_node_ident(LocalVarList *vl, char *ident) {
   Node *nd = malloc(sizeof(Node));
   nd->kind = ND_IDENT;
   nd->lhs = NULL;
   nd->rhs = NULL;
-  Varlist *v = is_registered(vl, ident);
+  LocalVarList *v = is_registered(vl, ident);
   if (!v) v = new_var_ident(vl, ident);
   nd->offset = v->offset;
   return nd;
 }
 
 // program = stmt*
-void program(Node **ndlist, Token **tk, Varlist *vl) {
+void program(Node **ndlist, Token **tk, LocalVarList *vl) {
   int i = 0;
   while (!at_eof(*tk)) {
     ndlist[i] = stmt(tk, vl);
@@ -49,7 +49,7 @@ void program(Node **ndlist, Token **tk, Varlist *vl) {
           | "for" "(" expr? ";" expr? ";" expr? ")" stmt
           | "return" expr ";"
 */
-Node *stmt(Token **tk, Varlist *vl) {
+Node *stmt(Token **tk, LocalVarList *vl) {
   if (!at_eof(*tk) && peek(*tk, "if")) {
     advance(tk);
     expect_consume(tk, "(");
@@ -116,12 +116,12 @@ Node *stmt(Token **tk, Varlist *vl) {
 }
 
 // expr = assign
-Node *expr(Token **tk, Varlist *vl) {
+Node *expr(Token **tk, LocalVarList *vl) {
   return assign(tk, vl);
 }
 
 // assign = equality ("=" assign)?
-Node *assign(Token **tk, Varlist *vl) {
+Node *assign(Token **tk, LocalVarList *vl) {
   Node *nd = equality(tk, vl);
 
   if (!at_eof(*tk) && peek(*tk, "=")) {
@@ -133,7 +133,7 @@ Node *assign(Token **tk, Varlist *vl) {
 }
 
 // equality = relational ("==" relational | "!=" relational)*
-Node *equality(Token **tk, Varlist *vl) {
+Node *equality(Token **tk, LocalVarList *vl) {
   Node *nd = relational(tk, vl);
 
   while (!at_eof(*tk) && (peek(*tk, "==") || peek(*tk, "!="))) {
@@ -150,7 +150,7 @@ Node *equality(Token **tk, Varlist *vl) {
 }
 
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-Node *relational(Token **tk, Varlist *vl) {
+Node *relational(Token **tk, LocalVarList *vl) {
   Node *nd = add(tk, vl);
 
   while (
@@ -176,7 +176,7 @@ Node *relational(Token **tk, Varlist *vl) {
 }
 
 // add = mul ("+" mul | "-" mul)
-Node *add(Token **tk, Varlist *vl) {
+Node *add(Token **tk, LocalVarList *vl) {
   Node *nd = mul(tk, vl);
 
   while (!at_eof(*tk) && (peek(*tk, "+") || peek(*tk, "-"))) {
@@ -193,7 +193,7 @@ Node *add(Token **tk, Varlist *vl) {
 }
 
 // mul = unary ("*" unary | "/" unary)*
-Node *mul(Token **tk, Varlist *vl) {
+Node *mul(Token **tk, LocalVarList *vl) {
 
   Node *nd = unary(tk, vl);
 
@@ -212,7 +212,7 @@ Node *mul(Token **tk, Varlist *vl) {
 }
 
 // unary = ("+" | "-")? primary
-Node *unary(Token **tk, Varlist *vl) {
+Node *unary(Token **tk, LocalVarList *vl) {
   if (!at_eof(*tk) && (peek(*tk, "+") || peek(*tk, "-"))) {
     char *op = consume(tk);
     if (strncmp(op, "+", 1) == 0) {
@@ -227,7 +227,7 @@ Node *unary(Token **tk, Varlist *vl) {
 }
 
 // primary = num | ident | "(" expr ")"
-Node *primary(Token **tk, Varlist *vl) {
+Node *primary(Token **tk, LocalVarList *vl) {
   if (peek_kind(*tk, TK_NUM)) {
     int num = consume_num(tk);
     return new_node_num(num);

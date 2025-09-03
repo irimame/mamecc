@@ -53,16 +53,16 @@ struct Node {
   Node *lhs;
   Node *rhs;
   int num;
-  int offset;
+  size_t offset;
 };
 
 
-/* Varlist */
-typedef struct Varlist Varlist;
-struct Varlist {
+/* LocalVarList */
+typedef struct LocalVarList LocalVarList;
+struct LocalVarList {
   char *ident;
-  int offset;
-  Varlist *next;
+  size_t offset;
+  LocalVarList *next;
 };
 
 
@@ -83,17 +83,17 @@ void print_tokens(Token *tk);
 /* Node */
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int num);
-Node *new_node_ident(Varlist *vl, char *ident);
-void program(Node **ndlist, Token **tk, Varlist *vl);
-Node *stmt(Token **tk, Varlist *vl);
-Node *expr(Token **tk, Varlist *vl);
-Node *assign(Token **tk, Varlist *vl);
-Node *equality(Token **tk, Varlist *vl);
-Node *relational(Token **tk, Varlist *vl);
-Node *add(Token **tk, Varlist *vl);
-Node *mul(Token **tk, Varlist *vl);
-Node *unary(Token **tk, Varlist *vl);
-Node *primary(Token **tk, Varlist *vl);
+Node *new_node_ident(LocalVarList *vl, char *ident);
+void program(Node **ndlist, Token **tk, LocalVarList *vl);
+Node *stmt(Token **tk, LocalVarList *vl);
+Node *expr(Token **tk, LocalVarList *vl);
+Node *assign(Token **tk, LocalVarList *vl);
+Node *equality(Token **tk, LocalVarList *vl);
+Node *relational(Token **tk, LocalVarList *vl);
+Node *add(Token **tk, LocalVarList *vl);
+Node *mul(Token **tk, LocalVarList *vl);
+Node *unary(Token **tk, LocalVarList *vl);
+Node *primary(Token **tk, LocalVarList *vl);
 
 
 /* codegen */
@@ -101,11 +101,12 @@ void node_to_code(Node *nd);
 void node_to_code_lhs(Node *nd);
 
 
-/* varlist */
-Varlist *init_varlist();
-Varlist *new_var_ident(Varlist *vl, char *ident);
-Varlist *is_registered(Varlist *vl, char *ident);
-int get_offset(Varlist *vl, char *ident);
-Varlist *tail_of_varlist(Varlist *vl);
+/* LocalVarList */
+LocalVarList *init_varlist();
+LocalVarList *new_var_ident(LocalVarList *vl, char *ident);
+LocalVarList *is_registered(LocalVarList *vl, char *ident);
+size_t get_offset(LocalVarList *vl, char *ident);
+LocalVarList *tail_of_varlist(LocalVarList *vl);
+size_t get_num_vars(LocalVarList *vl);
 
 #endif
