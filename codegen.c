@@ -97,6 +97,17 @@ void node_to_code(Node *nd) {
     return;
   }
 
+  if (nd->kind == ND_BLOCK) {
+    size_t i = 0;
+    while (nd->stmt_vec[i]) {
+      node_to_code(nd->stmt_vec[i]);
+      printf("  pop rax\n");
+      ++i;
+    }
+    printf("  push rax\n");
+    return;
+  }
+
   node_to_code(nd->lhs);
   node_to_code(nd->rhs);
 

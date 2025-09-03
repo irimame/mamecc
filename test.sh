@@ -45,5 +45,11 @@ assert 2 'i = 0; a = 3; if (a < 3) i = i + 1; else i = i + 2; return i;'
 assert 1 'i = 0; a = 2; if (a < 3) i = i + 1; else i = i + 2; return i;'
 assert 3 'i = 0; while (i < 3) i = i + 1; return i;'
 assert 4 'a = 1; for(i=0; i < 3; i= i+1) a = a * 2; return a / 2;'
+assert 6 '{ foo = 1; bar = 2 + 3; foo + bar; }'
+assert 4 '{a = 1; for(i=0; i < 3; i= i+1) a = a * 2; return a / 2;}'
+assert 2 'i = 0; a = 3; if (a < 3) {a = a + 2; a = a * 2; a = a - 2; a = a - 2;} else {i = i + 4; i = i / 2;} i;'
+assert 3 'i = 0; a = 3; if (a < 3) {a = a + 2; a = a * 2; a = a - 2; a = a - 2;} else {i = i + 4; i = i / 2;} a;'
+assert 0 'i = 0; a = 2; if (a < 3) {a = a + 2; a = a * 2; a = a - 2; a = a - 2;} else {i = i + 4; i = i / 2;} i;'
+assert 4 'i = 0; a = 2; if (a < 3) {a = a + 2; a = a * 2; a = a - 2; a = a - 2;} else {i = i + 4; i = i / 2;} a;'
 
 echo OK

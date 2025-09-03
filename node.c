@@ -32,6 +32,15 @@ Node *new_node_ident(LocalVarList *vl, char *ident) {
   return nd;
 }
 
+Node *new_node_block(Node **stmt_vec) {
+  Node *nd = malloc(sizeof(Node));
+  nd->kind = ND_BLOCK;
+  nd->lhs = NULL;
+  nd->rhs = NULL;
+  nd->stmt_vec = stmt_vec;
+  return nd;
+}
+
 // program = stmt*
 void program(Node **ndlist, Token **tk, LocalVarList *vl) {
   int i = 0;
@@ -44,13 +53,26 @@ void program(Node **ndlist, Token **tk, LocalVarList *vl) {
 
 /* 
   stmt  = expr ";" 
+          | "{" stmt* "}"
           | "if" "(" expr ")" stmt ("else" stmt)?
           | "while" "(" expr ")" stmt
           | "for" "(" expr? ";" expr? ";" expr? ")" stmt
           | "return" expr ";"
 */
 Node *stmt(Token **tk, LocalVarList *vl) {
-  if (!at_eof(*tk) && peek(*tk, "if")) {
+  if (!at_eof(*tk) && peek(*tk, "{")) {
+    advance(tk);
+    Node **stmt_vec = (Node **)malloc(sizeof(Node *) * 100); 
+    size_t i = 0;
+    while (!at_eof(*tk) && !peek(*tk, "}")) {
+      stmt_vec[i] = stmt(tk, vl);
+      ++i;
+    }
+    stmt_vec[i] = NULL;
+    expect_consume(tk, "}");
+    return new_node_block(stmt_vec);
+  }
+  else if (!at_eof(*tk) && peek(*tk, "if")) {
     advance(tk);
     expect_consume(tk, "(");
     Node *nd_if_expr = expr(tk, vl);

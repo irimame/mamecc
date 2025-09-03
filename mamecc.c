@@ -28,8 +28,8 @@ int main(int argc, char *argv[]) {
   size_t i = 0;
   while (nodelist[i]) {
     node_to_code(nodelist[i]);
-    ++i;
     printf("  pop rax\n");
+    ++i;
   }
 
   // epilogue

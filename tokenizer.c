@@ -74,6 +74,14 @@ Token *tokenize(char *p) {
       cur = new_token(cur, TK_SYMBOL, "=");
       ++p;
     }
+    else if (*p == '{') {
+      cur = new_token(cur, TK_SYMBOL, "{");
+      ++p;
+    }
+    else if (*p == '}') {
+      cur = new_token(cur, TK_SYMBOL, "}");
+      ++p;
+    }
     else if (isalpha(*p)) {
       char *q = p;
       while (isalnum(*q) || *q == '_') ++q;
