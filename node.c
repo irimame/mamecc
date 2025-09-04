@@ -41,6 +41,15 @@ Node *new_node_block(Node **stmt_vec) {
   return nd;
 }
 
+Node *new_node_funccall(char *ident) {
+  Node *nd = malloc(sizeof(Node));
+  nd->kind = ND_FUNCCALL;
+  nd->lhs = NULL;
+  nd->rhs = NULL;
+  nd->callee = ident;
+  return nd;
+}
+
 // program = stmt*
 void program(Node **ndlist, Token **tk, LocalVarList *vl) {
   int i = 0;
@@ -248,7 +257,10 @@ Node *unary(Token **tk, LocalVarList *vl) {
   return primary(tk, vl);
 }
 
-// primary = num | ident | "(" expr ")"
+/* primary  = num 
+            | ident ("(" ")")?
+            | "(" expr ")"
+*/
 Node *primary(Token **tk, LocalVarList *vl) {
   if (peek_kind(*tk, TK_NUM)) {
     int num = consume_num(tk);
@@ -256,6 +268,11 @@ Node *primary(Token **tk, LocalVarList *vl) {
   }
   else if (peek_kind(*tk, TK_IDENT)) {
     char *ident = consume_ident(tk);
+    if (!at_eof(*tk) && peek(*tk, "(")) {
+      advance(tk);
+      expect_consume(tk, ")");
+      return new_node_funccall(ident);
+    }
     return new_node_ident(vl, ident);
   }
 

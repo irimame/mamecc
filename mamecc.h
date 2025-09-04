@@ -43,6 +43,7 @@ typedef enum {
   ND_WHILE,
   ND_FOR,
   ND_BLOCK,
+  ND_FUNCCALL,
   ND_NUM,
   ND_IDENT,
   ND_PHONY
@@ -56,6 +57,7 @@ struct Node {
   int num;
   size_t offset;
   Node **stmt_vec;
+  char *callee;
 };
 
 
@@ -87,6 +89,7 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int num);
 Node *new_node_ident(LocalVarList *vl, char *ident);
 Node *new_node_block(Node **stmt_vec);
+Node *new_node_funccall(char *ident);
 void program(Node **ndlist, Token **tk, LocalVarList *vl);
 Node *stmt(Token **tk, LocalVarList *vl);
 Node *expr(Token **tk, LocalVarList *vl);

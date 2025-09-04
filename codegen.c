@@ -108,6 +108,20 @@ void node_to_code(Node *nd) {
     return;
   }
 
+  if (nd->kind == ND_FUNCCALL) {
+    printf("  mov rax, rsp\n");
+    printf("  cqo\n");
+    printf("  mov rdi, 16\n");
+    printf("  div rdi\n");
+    printf("  cmp rdx, 0\n");
+    printf("  jne .Lcall%ld\n", label_num);
+    printf("  sub rsp, 8\n");
+    printf(".Lcall%ld:\n", label_num);
+    printf("  call %s\n", nd->callee);
+    ++label_num;
+    return;
+  }
+
   node_to_code(nd->lhs);
   node_to_code(nd->rhs);
 
