@@ -41,12 +41,14 @@ Node *new_node_block(Node **stmt_vec) {
   return nd;
 }
 
-Node *new_node_funccall(char *ident) {
+Node *new_node_funccall(char *ident, Node **arg_vec, size_t len_arg_vec) {
   Node *nd = malloc(sizeof(Node));
   nd->kind = ND_FUNCCALL;
   nd->lhs = NULL;
   nd->rhs = NULL;
   nd->callee = ident;
+  nd->arg_vec = arg_vec;
+  nd->len_arg_vec = len_arg_vec;
   return nd;
 }
 
@@ -258,7 +260,7 @@ Node *unary(Token **tk, LocalVarList *vl) {
 }
 
 /* primary  = num 
-            | ident ("(" ")")?
+            | ident ("(" (expr ("," expr)*)? ")")?
             | "(" expr ")"
 */
 Node *primary(Token **tk, LocalVarList *vl) {
@@ -270,8 +272,16 @@ Node *primary(Token **tk, LocalVarList *vl) {
     char *ident = consume_ident(tk);
     if (!at_eof(*tk) && peek(*tk, "(")) {
       advance(tk);
+      Node **arg_vec = (Node **)malloc(sizeof(Node *) * 100); 
+      size_t i = 0;
+      while (!at_eof(*tk) && !peek(*tk, ")")) {
+        if (i > 0) expect_consume(tk, ",");
+        arg_vec[i] = expr(tk, vl);
+        ++i;
+      }
+      arg_vec[i] = NULL;
       expect_consume(tk, ")");
-      return new_node_funccall(ident);
+      return new_node_funccall(ident, arg_vec, i);
     }
     return new_node_ident(vl, ident);
   }

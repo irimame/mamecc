@@ -109,15 +109,55 @@ void node_to_code(Node *nd) {
   }
 
   if (nd->kind == ND_FUNCCALL) {
+    // TODO: store arguments 6..n to register/stack
+
+    // alignment check
     printf("  mov rax, rsp\n");
     printf("  cqo\n");
     printf("  mov rdi, 16\n");
     printf("  div rdi\n");
     printf("  cmp rdx, 0\n");
-    printf("  jne .Lcall%ld\n", label_num);
+    printf("  jne .Laligned%ld\n", label_num);
     printf("  sub rsp, 8\n");
-    printf(".Lcall%ld:\n", label_num);
+    printf(".Laligned%ld:\n", label_num);
+
+    // copy arguments 0..5 to registers
+    if (nd->len_arg_vec > 6) {
+      fprintf(stderr, "Error: arguments more than 6 not supported yet!\n");
+      exit(1);
+    }
+    size_t i = 0;
+    while (i < nd->len_arg_vec) {
+      node_to_code(nd->arg_vec[i]);
+      switch (i)
+      {
+      case 0:
+        printf("  pop rdi\n");
+        break;
+      case 1:
+        printf("  pop rsi\n");
+        break;
+      case 2:
+        printf("  pop rcx\n");
+        break;
+      case 3:
+        printf("  pop rdx\n");
+        break;
+      case 4:
+        printf("  pop r8\n");
+        break;
+      case 5:
+        printf("  pop r9\n");
+        break;
+      }
+      ++i;
+    }
+
+    // call
     printf("  call %s\n", nd->callee);
+
+    // TODO: remove arguments 6..n from stack
+
     ++label_num;
     return;
   }

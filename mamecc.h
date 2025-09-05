@@ -58,6 +58,8 @@ struct Node {
   size_t offset;
   Node **stmt_vec;
   char *callee;
+  Node **arg_vec;
+  size_t len_arg_vec;
 };
 
 
@@ -89,7 +91,7 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int num);
 Node *new_node_ident(LocalVarList *vl, char *ident);
 Node *new_node_block(Node **stmt_vec);
-Node *new_node_funccall(char *ident);
+Node *new_node_funccall(char *ident, Node **arg_vec, size_t len_arg_vec);
 void program(Node **ndlist, Token **tk, LocalVarList *vl);
 Node *stmt(Token **tk, LocalVarList *vl);
 Node *expr(Token **tk, LocalVarList *vl);
@@ -100,7 +102,6 @@ Node *add(Token **tk, LocalVarList *vl);
 Node *mul(Token **tk, LocalVarList *vl);
 Node *unary(Token **tk, LocalVarList *vl);
 Node *primary(Token **tk, LocalVarList *vl);
-
 
 /* codegen */
 void node_to_code(Node *nd);
