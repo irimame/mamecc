@@ -4,6 +4,10 @@
 #include <stddef.h>
 #include <stdbool.h>
 
+typedef struct Token Token;
+typedef struct Node Node;
+typedef struct LocalIdentList LocalIdentList;
+
 /* Token */
 typedef enum {
   TK_NUM,
@@ -17,7 +21,6 @@ typedef enum {
   TK_EOF
 } TokenKind;
 
-typedef struct Token Token;
 struct Token {
   TokenKind kind;
   char *val;
@@ -44,12 +47,12 @@ typedef enum {
   ND_FOR,
   ND_BLOCK,
   ND_FUNCCALL,
+  ND_FUNCDEF,
   ND_NUM,
   ND_IDENT,
   ND_PHONY
 } NodeKind;
 
-typedef struct Node Node;
 struct Node {
   NodeKind kind;
   Node *lhs;
@@ -57,18 +60,26 @@ struct Node {
   int num;
   size_t offset;
   Node **stmt_vec;
-  char *callee;
+  char *funcname;
   Node **arg_vec;
   size_t len_arg_vec;
+  Node *block;
+  LocalIdentList *lcl_ident_list;
 };
 
 
-/* LocalVarList */
-typedef struct LocalVarList LocalVarList;
-struct LocalVarList {
+/* LocalIdentList */
+typedef enum {
+  LCL_ARG,
+  LCL_VAR,
+  LCL_NULL
+} LocalIdentKind;
+
+struct LocalIdentList {
   char *ident;
   size_t offset;
-  LocalVarList *next;
+  LocalIdentKind kind;
+  LocalIdentList *next;
 };
 
 
@@ -89,31 +100,33 @@ void print_tokens(Token *tk);
 /* Node */
 Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int num);
-Node *new_node_ident(LocalVarList *vl, char *ident);
+Node *new_node_ident(LocalIdentList **vl, char *ident, LocalIdentKind kind);
 Node *new_node_block(Node **stmt_vec);
 Node *new_node_funccall(char *ident, Node **arg_vec, size_t len_arg_vec);
-void program(Node **ndlist, Token **tk, LocalVarList *vl);
-Node *stmt(Token **tk, LocalVarList *vl);
-Node *expr(Token **tk, LocalVarList *vl);
-Node *assign(Token **tk, LocalVarList *vl);
-Node *equality(Token **tk, LocalVarList *vl);
-Node *relational(Token **tk, LocalVarList *vl);
-Node *add(Token **tk, LocalVarList *vl);
-Node *mul(Token **tk, LocalVarList *vl);
-Node *unary(Token **tk, LocalVarList *vl);
-Node *primary(Token **tk, LocalVarList *vl);
+Node *new_node_funcdef(char *funcname, Node *block, LocalIdentList *lil);
+void program(Node **ndlist, Token **tk, LocalIdentList **vl);
+Node *funcdef(Token **tk, LocalIdentList **vl);
+Node *block(Token **tk, LocalIdentList **vl);
+Node *stmt(Token **tk, LocalIdentList **vl);
+Node *expr(Token **tk, LocalIdentList **vl);
+Node *assign(Token **tk, LocalIdentList **vl);
+Node *equality(Token **tk, LocalIdentList **vl);
+Node *relational(Token **tk, LocalIdentList **vl);
+Node *add(Token **tk, LocalIdentList **vl);
+Node *mul(Token **tk, LocalIdentList **vl);
+Node *unary(Token **tk, LocalIdentList **vl);
+Node *primary(Token **tk, LocalIdentList **vl);
 
 /* codegen */
-void node_to_code(Node *nd);
+void node_to_code(Node *nd, LocalIdentList *lil);
 void node_to_code_lhs(Node *nd);
 
 
-/* LocalVarList */
-LocalVarList *init_varlist(void);
-LocalVarList *new_var_ident(LocalVarList *vl, char *ident);
-LocalVarList *is_registered(LocalVarList *vl, char *ident);
-size_t get_offset(LocalVarList *vl, char *ident);
-LocalVarList *tail_of_varlist(LocalVarList *vl);
-size_t get_num_vars(LocalVarList *vl);
+/* LocalIdentList */
+LocalIdentList *init_varlist(void);
+LocalIdentList *new_var_ident(LocalIdentList **vl, char *ident, LocalIdentKind kind);
+LocalIdentList *is_registered(LocalIdentList *vl, char *ident);
+size_t get_offset(LocalIdentList *vl, char *ident);
+size_t get_num_idents(LocalIdentList *vl, LocalIdentKind kind);
 
 #endif

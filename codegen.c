@@ -4,7 +4,7 @@
 
 static size_t label_num = 0;
 
-void node_to_code(Node *nd) {
+void node_to_code(Node *nd, LocalIdentList *lil) {
   if (nd == NULL) return;
 
   if (nd->kind == ND_NUM) {
@@ -24,7 +24,7 @@ void node_to_code(Node *nd) {
   if (nd->kind == ND_ASSIGN) {
     // a variable in LHS: push the address of the variable
     node_to_code_lhs(nd->lhs);
-    node_to_code(nd->rhs);
+    node_to_code(nd->rhs, lil);
 
     printf("  pop rdi\n");
     printf("  pop rax\n");
@@ -34,7 +34,7 @@ void node_to_code(Node *nd) {
   }
 
   if (nd->kind == ND_RETURN) {
-    node_to_code(nd->lhs);
+    node_to_code(nd->lhs, lil);
 
     // pop & epilogue
     printf("  pop rax\n");
@@ -45,25 +45,25 @@ void node_to_code(Node *nd) {
   }
 
   if (nd->kind == ND_IF) {
-    node_to_code(nd->lhs);
+    node_to_code(nd->lhs, lil);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
     printf("  je  .Lend%ld\n", label_num);
-    node_to_code(nd->rhs);
+    node_to_code(nd->rhs, lil);
     printf(".Lend%ld:\n", label_num);
     ++label_num;
     return;
   }
 
   if (nd->kind == ND_IF_ELSE) {
-    node_to_code(nd->lhs->lhs);
+    node_to_code(nd->lhs->lhs, lil);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
     printf("  je  .Lelse%ld\n", label_num);
-    node_to_code(nd->lhs->rhs);
+    node_to_code(nd->lhs->rhs, lil);
     printf("  jmp .Lend%ld\n", label_num);
     printf(".Lelse%ld:\n", label_num);
-    node_to_code(nd->rhs);
+    node_to_code(nd->rhs, lil);
     printf(".Lend%ld:\n", label_num);
     ++label_num;
     return;
@@ -71,11 +71,11 @@ void node_to_code(Node *nd) {
 
   if (nd->kind == ND_WHILE) {
     printf(".Lbegin%ld:\n", label_num);
-    node_to_code(nd->lhs);
+    node_to_code(nd->lhs, lil);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
     printf("  je  .Lend%ld\n", label_num);
-    node_to_code(nd->rhs);
+    node_to_code(nd->rhs, lil);
     printf("  jmp .Lbegin%ld\n", label_num);
     printf(".Lend%ld:\n", label_num);
     ++label_num;
@@ -83,14 +83,14 @@ void node_to_code(Node *nd) {
   }
 
   if (nd->kind == ND_FOR) {
-    node_to_code(nd->lhs->lhs);
+    node_to_code(nd->lhs->lhs, lil);
     printf(".Lbegin%ld:\n", label_num);
-    node_to_code(nd->lhs->rhs);
+    node_to_code(nd->lhs->rhs, lil);
     printf("  pop rax\n");
     printf("  cmp rax, 0\n");
     printf("  je  .Lend%ld\n", label_num);
-    node_to_code(nd->rhs->lhs);
-    node_to_code(nd->rhs->rhs);
+    node_to_code(nd->rhs->lhs, lil);
+    node_to_code(nd->rhs->rhs, lil);
     printf("  jmp .Lbegin%ld\n", label_num);
     printf(".Lend%ld:\n", label_num);
     ++label_num;
@@ -100,7 +100,7 @@ void node_to_code(Node *nd) {
   if (nd->kind == ND_BLOCK) {
     size_t i = 0;
     while (nd->stmt_vec[i]) {
-      node_to_code(nd->stmt_vec[i]);
+      node_to_code(nd->stmt_vec[i], lil);
       printf("  pop rax\n");
       ++i;
     }
@@ -112,14 +112,14 @@ void node_to_code(Node *nd) {
     // TODO: store arguments 6..n to register/stack
 
     // alignment check
-    printf("  mov rax, rsp\n");
-    printf("  cqo\n");
-    printf("  mov rdi, 16\n");
-    printf("  div rdi\n");
-    printf("  cmp rdx, 0\n");
-    printf("  jne .Laligned%ld\n", label_num);
-    printf("  sub rsp, 8\n");
-    printf(".Laligned%ld:\n", label_num);
+    //printf("  mov rax, rsp\n");
+    //printf("  cqo\n");
+    //printf("  mov rdi, 16\n");
+    //printf("  div rdi\n");
+    //printf("  cmp rdx, 0\n");
+    //printf("  jne .Laligned%ld\n", label_num);
+    //printf("  sub rsp, 8\n");
+    //printf(".Laligned%ld:\n", label_num);
 
     // copy arguments 0..5 to registers
     if (nd->len_arg_vec > 6) {
@@ -128,7 +128,7 @@ void node_to_code(Node *nd) {
     }
     size_t i = 0;
     while (i < nd->len_arg_vec) {
-      node_to_code(nd->arg_vec[i]);
+      node_to_code(nd->arg_vec[i], lil);
       switch (i)
       {
       case 0:
@@ -154,7 +154,10 @@ void node_to_code(Node *nd) {
     }
 
     // call
-    printf("  call %s\n", nd->callee);
+    printf("  call %s\n", nd->funcname);
+
+    // push the return value to stack
+    printf("  push rax\n");
 
     // TODO: remove arguments 6..n from stack
 
@@ -162,8 +165,29 @@ void node_to_code(Node *nd) {
     return;
   }
 
-  node_to_code(nd->lhs);
-  node_to_code(nd->rhs);
+  if (nd->kind == ND_FUNCDEF) {
+    size_t num_arg = get_num_idents(lil, LCL_ARG);
+    size_t num_var = get_num_idents(lil, LCL_VAR);
+
+    // prologue
+    printf("%s:\n", nd->funcname);
+    printf("  push rbp\n");
+    printf("  mov rbp, rsp\n");
+    printf("  sub rsp, %ld\n", (num_arg + num_var) * 8);
+
+    node_to_code(nd->block, lil);
+
+    // pop & epilogue
+    printf("  pop rax\n");
+    printf("  mov rsp, rbp\n");
+    printf("  pop rbp\n");
+    printf("  ret\n");
+    printf("\n");
+    return;
+  }
+
+  node_to_code(nd->lhs, lil);
+  node_to_code(nd->rhs, lil);
 
   printf("  pop rdi\n");
   printf("  pop rax\n");

@@ -21,13 +21,13 @@ Node *new_node_num(int num) {
   return nd;
 }
 
-Node *new_node_ident(LocalVarList *vl, char *ident) {
+Node *new_node_ident(LocalIdentList **vl, char *ident, LocalIdentKind kind) {
   Node *nd = malloc(sizeof(Node));
   nd->kind = ND_IDENT;
   nd->lhs = NULL;
   nd->rhs = NULL;
-  LocalVarList *v = is_registered(vl, ident);
-  if (!v) v = new_var_ident(vl, ident);
+  LocalIdentList *v = is_registered(*vl, ident);
+  if (!v) v = new_var_ident(vl, ident, kind);
   nd->offset = v->offset;
   return nd;
 }
@@ -41,47 +41,78 @@ Node *new_node_block(Node **stmt_vec) {
   return nd;
 }
 
-Node *new_node_funccall(char *ident, Node **arg_vec, size_t len_arg_vec) {
+Node *new_node_funccall(char *funcname, Node **arg_vec, size_t len_arg_vec) {
   Node *nd = malloc(sizeof(Node));
   nd->kind = ND_FUNCCALL;
   nd->lhs = NULL;
   nd->rhs = NULL;
-  nd->callee = ident;
+  nd->funcname = funcname;
   nd->arg_vec = arg_vec;
   nd->len_arg_vec = len_arg_vec;
   return nd;
 }
 
-// program = stmt*
-void program(Node **ndlist, Token **tk, LocalVarList *vl) {
+Node *new_node_funcdef(char *funcname, Node *block, LocalIdentList *lil) {
+  Node *nd = malloc(sizeof(Node));
+  nd->kind = ND_FUNCDEF;
+  nd->lhs = NULL;
+  nd->rhs = NULL;
+  nd->funcname = funcname;
+  nd->block = block;
+  nd->lcl_ident_list = lil;
+  return nd;
+}
+
+// program = funcdef*
+void program(Node **ndlist, Token **tk, LocalIdentList **vl) {
   int i = 0;
   while (!at_eof(*tk)) {
-    ndlist[i] = stmt(tk, vl);
+    vl[i] = init_varlist();
+    ndlist[i] = funcdef(tk, &vl[i]);
     ++i;
   }
   ndlist[i] = NULL;
+  vl[i] = NULL;
+}
+
+// funcdef = ident "(" ")" block
+Node *funcdef(Token **tk, LocalIdentList **vl) {
+  char *funcname = consume_ident(tk);
+
+  expect_consume(tk, "(");
+  expect_consume(tk, ")");
+
+  return new_node_funcdef(funcname, block(tk, vl), *vl);
+}
+
+// block = "{" stmt* "}"
+Node *block(Token **tk, LocalIdentList **vl) {
+  expect_consume(tk, "{");
+  Node **stmt_vec = (Node **)malloc(sizeof(Node *) * 100); 
+  size_t i = 0;
+  while (!at_eof(*tk) && !peek(*tk, "}")) {
+    stmt_vec[i] = stmt(tk, vl);
+
+    ++i;
+  }
+
+  stmt_vec[i] = NULL;
+  expect_consume(tk, "}");
+  return new_node_block(stmt_vec);
 }
 
 /* 
   stmt  = expr ";" 
-          | "{" stmt* "}"
+          | block
           | "if" "(" expr ")" stmt ("else" stmt)?
           | "while" "(" expr ")" stmt
           | "for" "(" expr? ";" expr? ";" expr? ")" stmt
           | "return" expr ";"
+  block = "{" stmt* "}"
 */
-Node *stmt(Token **tk, LocalVarList *vl) {
+Node *stmt(Token **tk, LocalIdentList **vl) {
   if (!at_eof(*tk) && peek(*tk, "{")) {
-    advance(tk);
-    Node **stmt_vec = (Node **)malloc(sizeof(Node *) * 100); 
-    size_t i = 0;
-    while (!at_eof(*tk) && !peek(*tk, "}")) {
-      stmt_vec[i] = stmt(tk, vl);
-      ++i;
-    }
-    stmt_vec[i] = NULL;
-    expect_consume(tk, "}");
-    return new_node_block(stmt_vec);
+    return block(tk, vl);
   }
   else if (!at_eof(*tk) && peek(*tk, "if")) {
     advance(tk);
@@ -149,12 +180,12 @@ Node *stmt(Token **tk, LocalVarList *vl) {
 }
 
 // expr = assign
-Node *expr(Token **tk, LocalVarList *vl) {
+Node *expr(Token **tk, LocalIdentList **vl) {
   return assign(tk, vl);
 }
 
 // assign = equality ("=" assign)?
-Node *assign(Token **tk, LocalVarList *vl) {
+Node *assign(Token **tk, LocalIdentList **vl) {
   Node *nd = equality(tk, vl);
 
   if (!at_eof(*tk) && peek(*tk, "=")) {
@@ -166,7 +197,7 @@ Node *assign(Token **tk, LocalVarList *vl) {
 }
 
 // equality = relational ("==" relational | "!=" relational)*
-Node *equality(Token **tk, LocalVarList *vl) {
+Node *equality(Token **tk, LocalIdentList **vl) {
   Node *nd = relational(tk, vl);
 
   while (!at_eof(*tk) && (peek(*tk, "==") || peek(*tk, "!="))) {
@@ -183,7 +214,7 @@ Node *equality(Token **tk, LocalVarList *vl) {
 }
 
 // relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-Node *relational(Token **tk, LocalVarList *vl) {
+Node *relational(Token **tk, LocalIdentList **vl) {
   Node *nd = add(tk, vl);
 
   while (
@@ -209,7 +240,7 @@ Node *relational(Token **tk, LocalVarList *vl) {
 }
 
 // add = mul ("+" mul | "-" mul)
-Node *add(Token **tk, LocalVarList *vl) {
+Node *add(Token **tk, LocalIdentList **vl) {
   Node *nd = mul(tk, vl);
 
   while (!at_eof(*tk) && (peek(*tk, "+") || peek(*tk, "-"))) {
@@ -226,7 +257,7 @@ Node *add(Token **tk, LocalVarList *vl) {
 }
 
 // mul = unary ("*" unary | "/" unary)*
-Node *mul(Token **tk, LocalVarList *vl) {
+Node *mul(Token **tk, LocalIdentList **vl) {
 
   Node *nd = unary(tk, vl);
 
@@ -245,7 +276,7 @@ Node *mul(Token **tk, LocalVarList *vl) {
 }
 
 // unary = ("+" | "-")? primary
-Node *unary(Token **tk, LocalVarList *vl) {
+Node *unary(Token **tk, LocalIdentList **vl) {
   if (!at_eof(*tk) && (peek(*tk, "+") || peek(*tk, "-"))) {
     char *op = consume(tk);
     if (strncmp(op, "+", 1) == 0) {
@@ -263,7 +294,7 @@ Node *unary(Token **tk, LocalVarList *vl) {
             | ident ("(" (expr ("," expr)*)? ")")?
             | "(" expr ")"
 */
-Node *primary(Token **tk, LocalVarList *vl) {
+Node *primary(Token **tk, LocalIdentList **vl) {
   if (peek_kind(*tk, TK_NUM)) {
     int num = consume_num(tk);
     return new_node_num(num);
@@ -283,7 +314,7 @@ Node *primary(Token **tk, LocalVarList *vl) {
       expect_consume(tk, ")");
       return new_node_funccall(ident, arg_vec, i);
     }
-    return new_node_ident(vl, ident);
+    return new_node_ident(vl, ident, LCL_VAR);
   }
 
   expect_consume(tk, "(");

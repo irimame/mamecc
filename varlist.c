@@ -3,34 +3,35 @@
 #include <string.h>
 #include <stdio.h>
 
-LocalVarList *init_varlist(void) {
-  LocalVarList *varlist = malloc(sizeof(LocalVarList));
+LocalIdentList *init_varlist(void) {
+  LocalIdentList *varlist = malloc(sizeof(LocalIdentList));
   varlist->ident = "";
   varlist->offset = 0;
+  varlist->kind = LCL_NULL;
   varlist->next = NULL;
   return varlist;
 }
 
-LocalVarList *new_var_ident(LocalVarList *vl, char *ident) {
-  LocalVarList *tail = tail_of_varlist(vl);
-  LocalVarList *newvarlist = malloc(sizeof(LocalVarList));
+LocalIdentList *new_var_ident(LocalIdentList **vl, char *ident, LocalIdentKind kind) {
+  LocalIdentList *newvarlist = malloc(sizeof(LocalIdentList));
   newvarlist->ident = ident;
-  newvarlist->offset = tail->offset + 8;
-  newvarlist->next = NULL;
-  tail->next = newvarlist;
+  newvarlist->offset = (*vl)->offset + 8;
+  newvarlist->kind = kind;
+  newvarlist->next = (*vl);
+  (*vl) = newvarlist;
   return newvarlist;
 }
 
-LocalVarList *is_registered(LocalVarList *vl, char *ident) {
-  while (vl != NULL) {
+LocalIdentList *is_registered(LocalIdentList *vl, char *ident) {
+  while (vl) {
     if (strncmp(vl->ident, ident, strlen(ident)) == 0) return vl;
     vl = vl->next;
   }
   return NULL;
 }
 
-size_t get_offset(LocalVarList *vl, char *ident) {
-  while (vl != NULL) {
+size_t get_offset(LocalIdentList *vl, char *ident) {
+  while (vl) {
     if (strncmp(vl->ident, ident, strlen(ident)) == 0) return vl->offset;
     vl = vl->next;
   }
@@ -39,16 +40,10 @@ size_t get_offset(LocalVarList *vl, char *ident) {
   exit(1);
 }
 
-LocalVarList *tail_of_varlist(LocalVarList *vl) {
-  LocalVarList *cur = vl;
-  while (cur->next != NULL) cur = cur->next;
-  return cur;
-}
-
-size_t get_num_vars(LocalVarList *vl) {
+size_t get_num_idents(LocalIdentList *vl, LocalIdentKind kind) {
   size_t count = 0;
-  while (vl->next != NULL) {
-    ++count;
+  while (vl) {
+    if (vl->kind == kind) ++count;
     vl = vl->next;
   }
   return count;

@@ -11,31 +11,22 @@ int main(int argc, char *argv[]) {
   Token *token = tokenize(argv[1]);
 
   /* parse */
-  LocalVarList *varlist = init_varlist();
+  LocalIdentList *local_ident_list[100];
   Node *nodelist[100];
-  program(nodelist, &token, varlist);
+  program(nodelist, &token, local_ident_list);
 
   /* codegen */
   printf(".intel_syntax noprefix\n");
   printf(".globl main\n");
-  printf("main:\n");
-
-  // prologue
-  printf("  push rbp\n");
-  printf("  mov rbp, rsp\n");
-  printf("  sub rsp, %ld\n", get_num_vars(varlist) * 8);
+  printf("\n");
 
   size_t i = 0;
   while (nodelist[i]) {
-    node_to_code(nodelist[i]);
-    printf("  pop rax\n");
+    node_to_code(nodelist[i], local_ident_list[i]);
     ++i;
   }
 
-  // epilogue
-  printf("  mov rsp, rbp\n");
-  printf("  pop rbp\n");
-  printf("  ret\n");
+
 
   return 0;
 }
