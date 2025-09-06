@@ -41,18 +41,18 @@ Node *new_node_block(Node **stmt_vec) {
   return nd;
 }
 
-Node *new_node_funccall(char *funcname, Node **arg_vec, size_t len_arg_vec) {
+Node *new_node_funccall(char *funcname, Node **param_vec, size_t len_param_vec) {
   Node *nd = malloc(sizeof(Node));
   nd->kind = ND_FUNCCALL;
   nd->lhs = NULL;
   nd->rhs = NULL;
   nd->funcname = funcname;
-  nd->arg_vec = arg_vec;
-  nd->len_arg_vec = len_arg_vec;
+  nd->param_vec = param_vec;
+  nd->len_param_vec = len_param_vec;
   return nd;
 }
 
-Node *new_node_funcdef(char *funcname, Node *block, LocalIdentList *lil) {
+Node *new_node_funcdef(char *funcname, Node *block, LocalIdentList *lil, char **lcl_arg_list, size_t len_lcl_arg_list) {
   Node *nd = malloc(sizeof(Node));
   nd->kind = ND_FUNCDEF;
   nd->lhs = NULL;
@@ -60,6 +60,8 @@ Node *new_node_funcdef(char *funcname, Node *block, LocalIdentList *lil) {
   nd->funcname = funcname;
   nd->block = block;
   nd->lcl_ident_list = lil;
+  nd->lcl_arg_list = lcl_arg_list;
+  nd->len_lcl_arg_list = len_lcl_arg_list;
   return nd;
 }
 
@@ -75,14 +77,20 @@ void program(Node **ndlist, Token **tk, LocalIdentList **vl) {
   vl[i] = NULL;
 }
 
-// funcdef = ident "(" ")" block
+// funcdef = ident "(" (ident ("," ident)*)? ")" block
 Node *funcdef(Token **tk, LocalIdentList **vl) {
   char *funcname = consume_ident(tk);
-
   expect_consume(tk, "(");
+  char **lcl_arg_list = (char **)malloc(sizeof(char *) * 100); 
+  size_t i = 0;
+  while (!at_eof(*tk) && !peek(*tk, ")")) {
+    if (i > 0) expect_consume(tk, ",");
+    lcl_arg_list[i] = consume_ident(tk);
+    ++i;
+  }
+  lcl_arg_list[i] = NULL;
   expect_consume(tk, ")");
-
-  return new_node_funcdef(funcname, block(tk, vl), *vl);
+  return new_node_funcdef(funcname, block(tk, vl), *vl, lcl_arg_list, i);
 }
 
 // block = "{" stmt* "}"

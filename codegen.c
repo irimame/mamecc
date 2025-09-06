@@ -109,7 +109,7 @@ void node_to_code(Node *nd, LocalIdentList *lil) {
   }
 
   if (nd->kind == ND_FUNCCALL) {
-    // TODO: store arguments 6..n to register/stack
+    // TODO: store parameters 6..n to register/stack
 
     // alignment check
     //printf("  mov rax, rsp\n");
@@ -121,14 +121,14 @@ void node_to_code(Node *nd, LocalIdentList *lil) {
     //printf("  sub rsp, 8\n");
     //printf(".Laligned%ld:\n", label_num);
 
-    // copy arguments 0..5 to registers
-    if (nd->len_arg_vec > 6) {
-      fprintf(stderr, "Error: arguments more than 6 not supported yet!\n");
+    // copy parameters 0..5 to registers
+    if (nd->len_param_vec > 6) {
+      fprintf(stderr, "Error: parameters more than 6 not supported yet!\n");
       exit(1);
     }
     size_t i = 0;
-    while (i < nd->len_arg_vec) {
-      node_to_code(nd->arg_vec[i], lil);
+    while (i < nd->len_param_vec) {
+      node_to_code(nd->param_vec[i], lil);
       switch (i)
       {
       case 0:
@@ -159,7 +159,7 @@ void node_to_code(Node *nd, LocalIdentList *lil) {
     // push the return value to stack
     printf("  push rax\n");
 
-    // TODO: remove arguments 6..n from stack
+    // TODO: remove parameters 6..n from stack
 
     ++label_num;
     return;
@@ -174,6 +174,44 @@ void node_to_code(Node *nd, LocalIdentList *lil) {
     printf("  push rbp\n");
     printf("  mov rbp, rsp\n");
     printf("  sub rsp, %ld\n", (num_arg + num_var) * 8);
+
+    // copy registers to stack
+    if (num_arg > 6) {
+      fprintf(stderr, "Error: arguments more than 6 not supported yet!\n");
+      exit(1);
+    }
+    if (num_arg != nd->len_lcl_arg_list) {
+      fprintf(stderr, "Error: len of argument list is not equal to num of arguments\n");
+      exit(1);
+    }
+    size_t i = 0;
+    while (i < nd->len_lcl_arg_list) {
+      printf("  mov rax, rbp\n");
+      printf("  sub rax, %ld\n", get_offset(nd->lcl_ident_list, nd->lcl_arg_list[i]));
+      printf("  push rax\n");
+      switch (i)
+      {
+      case 0:
+        printf("  mov [rax], rdi\n");
+        break;
+      case 1:
+        printf("  mov [rax], rsi\n");
+        break;
+      case 2:
+        printf("  mov [rax], rcx\n");
+        break;
+      case 3:
+        printf("  mov [rax], rdx\n");
+        break;
+      case 4:
+        printf("  mov [rax], r8\n");
+        break;
+      case 5:
+        printf("  mov [rax], r9\n");
+        break;
+      }
+      ++i;
+    }
 
     node_to_code(nd->block, lil);
 

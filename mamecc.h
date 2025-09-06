@@ -61,10 +61,12 @@ struct Node {
   size_t offset;
   Node **stmt_vec;
   char *funcname;
-  Node **arg_vec;
-  size_t len_arg_vec;
+  Node **param_vec;
+  size_t len_param_vec;
   Node *block;
   LocalIdentList *lcl_ident_list;
+  char **lcl_arg_list;
+  size_t len_lcl_arg_list;
 };
 
 
@@ -102,8 +104,8 @@ Node *new_node(NodeKind kind, Node *lhs, Node *rhs);
 Node *new_node_num(int num);
 Node *new_node_ident(LocalIdentList **vl, char *ident, LocalIdentKind kind);
 Node *new_node_block(Node **stmt_vec);
-Node *new_node_funccall(char *ident, Node **arg_vec, size_t len_arg_vec);
-Node *new_node_funcdef(char *funcname, Node *block, LocalIdentList *lil);
+Node *new_node_funccall(char *funcname, Node **param_vec, size_t len_param_vec);
+Node *new_node_funcdef(char *funcname, Node *block, LocalIdentList *lil, char **lcl_arg_list, size_t len_lcl_arg_list);
 void program(Node **ndlist, Token **tk, LocalIdentList **vl);
 Node *funcdef(Token **tk, LocalIdentList **vl);
 Node *block(Token **tk, LocalIdentList **vl);
