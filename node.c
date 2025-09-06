@@ -85,7 +85,9 @@ Node *funcdef(Token **tk, LocalIdentList **vl) {
   size_t i = 0;
   while (!at_eof(*tk) && !peek(*tk, ")")) {
     if (i > 0) expect_consume(tk, ",");
-    lcl_arg_list[i] = consume_ident(tk);
+    char *argname = consume_ident(tk);
+    new_var_ident(vl, argname, LCL_ARG);
+    lcl_arg_list[i] = argname;
     ++i;
   }
   lcl_arg_list[i] = NULL;

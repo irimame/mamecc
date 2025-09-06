@@ -14,9 +14,9 @@ void node_to_code(Node *nd, LocalIdentList *lil) {
 
   // a variable in RHS: push the value of the variable
   if (nd->kind == ND_IDENT) {
-    printf("  mov rdi, rbp\n");
-    printf("  sub rdi, %ld\n", nd->offset);
-    printf("  mov rax, [rdi]\n"); 
+    printf("  mov r12, rbp\n");
+    printf("  sub r12, %ld\n", nd->offset);
+    printf("  mov rax, [r12]\n"); 
     printf("  push rax\n");
     return;
   }
@@ -26,10 +26,10 @@ void node_to_code(Node *nd, LocalIdentList *lil) {
     node_to_code_lhs(nd->lhs);
     node_to_code(nd->rhs, lil);
 
-    printf("  pop rdi\n");
+    printf("  pop r12\n");
     printf("  pop rax\n");
-    printf("  mov [rax], rdi\n"); 
-    printf("  push rdi\n");
+    printf("  mov [rax], r12\n"); 
+    printf("  push r12\n");
     return;
   }
 
@@ -51,6 +51,7 @@ void node_to_code(Node *nd, LocalIdentList *lil) {
     printf("  je  .Lend%ld\n", label_num);
     node_to_code(nd->rhs, lil);
     printf(".Lend%ld:\n", label_num);
+    printf("  push rax\n");
     ++label_num;
     return;
   }
@@ -65,6 +66,7 @@ void node_to_code(Node *nd, LocalIdentList *lil) {
     printf(".Lelse%ld:\n", label_num);
     node_to_code(nd->rhs, lil);
     printf(".Lend%ld:\n", label_num);
+    printf("  push rax\n");
     ++label_num;
     return;
   }
@@ -78,6 +80,7 @@ void node_to_code(Node *nd, LocalIdentList *lil) {
     node_to_code(nd->rhs, lil);
     printf("  jmp .Lbegin%ld\n", label_num);
     printf(".Lend%ld:\n", label_num);
+    printf("  push rax\n");
     ++label_num;
     return;
   }
@@ -93,6 +96,7 @@ void node_to_code(Node *nd, LocalIdentList *lil) {
     node_to_code(nd->rhs->rhs, lil);
     printf("  jmp .Lbegin%ld\n", label_num);
     printf(".Lend%ld:\n", label_num);
+    printf("  push rax\n");
     ++label_num;
     return;
   }
@@ -120,6 +124,9 @@ void node_to_code(Node *nd, LocalIdentList *lil) {
     //printf("  jne .Laligned%ld\n", label_num);
     //printf("  sub rsp, 8\n");
     //printf(".Laligned%ld:\n", label_num);
+
+    // alignment restore
+    //++label_num;
 
     // copy parameters 0..5 to registers
     if (nd->len_param_vec > 6) {
@@ -181,14 +188,18 @@ void node_to_code(Node *nd, LocalIdentList *lil) {
       exit(1);
     }
     if (num_arg != nd->len_lcl_arg_list) {
-      fprintf(stderr, "Error: len of argument list is not equal to num of arguments\n");
+      fprintf(
+        stderr,
+        "Error: len of argument list (%ld) is not equal to num of arguments (%ld)\n",
+        nd->len_lcl_arg_list, num_arg
+      );
       exit(1);
     }
     size_t i = 0;
     while (i < nd->len_lcl_arg_list) {
       printf("  mov rax, rbp\n");
       printf("  sub rax, %ld\n", get_offset(nd->lcl_ident_list, nd->lcl_arg_list[i]));
-      printf("  push rax\n");
+      //printf("  push rax\n");
       switch (i)
       {
       case 0:
